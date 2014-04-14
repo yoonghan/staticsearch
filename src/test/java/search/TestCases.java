@@ -1,5 +1,7 @@
 package search;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Assert;
@@ -10,6 +12,9 @@ import search.init.SearchMultiObjectGuavaCache;
 import search.init.SimpleDataType;
 
 import com.timwe.util.celcom.my.search.data.FilterPageResult;
+import com.timwe.util.celcom.my.search.data.SearchRequest;
+import com.timwe.util.celcom.my.search.data.SearchResultList;
+import com.timwe.util.celcom.my.search.data.SearchWorker;
 import com.timwe.util.celcom.my.search.util.SearchUtility;
 
 public class TestCases {
@@ -24,7 +29,7 @@ public class TestCases {
 	public void searchValidCounts(){
 		//List<SearchRequest> defaultSearch = cacheSearcher.loadSite_10K_Example();
 		List<String> values = SearchUtility.searchInputWithSiteAndKey(cacheSearcher, "site","999");
-		Assert.assertEquals(values.size(), 18);
+		Assert.assertEquals(values.size(), 10);
 	}
 	
 	/**
@@ -42,7 +47,7 @@ public class TestCases {
 	@Test
 	public void searchThreeKeysWithValidCounts(){
 		List<String> values = SearchUtility.searchInputWithSiteAndKey(cacheSearcher, "site", "RASHIDI", "100","999");
-		Assert.assertEquals(values.size(), 38);
+		Assert.assertEquals(values.size(), 21);
 	}
 	
 	/**
@@ -52,7 +57,7 @@ public class TestCases {
 	public void searchFirst20Records(){
 		FilterPageResult<String> values = SearchUtility.searchInputWithSiteAndKey(cacheSearcher, new StringOrderComparison(), "site", 0, 20, "RASHIDI", "100","999");
 		Assert.assertEquals(values.getRecords().size(), 20);
-		Assert.assertEquals(values.getTotalRecords(), 38);
+		Assert.assertEquals(values.getTotalRecords(), 21);
 	}
 	
 	/**
@@ -60,9 +65,9 @@ public class TestCases {
 	 */
 	@Test
 	public void searchMiddle20Records(){
-		FilterPageResult<String> values = SearchUtility.searchInputWithSiteAndKey(cacheSearcher, new StringOrderComparison(), "site", 5, 20, "RASHIDI", "100","999");
-		Assert.assertEquals(values.getRecords().size(), 20);
-		Assert.assertEquals(values.getTotalRecords(), 38);
+		FilterPageResult<String> values = SearchUtility.searchInputWithSiteAndKey(cacheSearcher, new StringOrderComparison(), "site", 5, 6, "RASHIDI", "100","999");
+		Assert.assertEquals(values.getRecords().size(), 6);
+		Assert.assertEquals(values.getTotalRecords(), 21);
 	}
 	
 	/**
@@ -71,8 +76,8 @@ public class TestCases {
 	@Test
 	public void searchLast20Records(){
 		FilterPageResult<String> values = SearchUtility.searchInputWithSiteAndKey(cacheSearcher, new StringOrderComparison(), "site", 19, 20, "RASHIDI", "100","999");
-		Assert.assertEquals(values.getRecords().size(), 19);
-		Assert.assertEquals(values.getTotalRecords(), 38);
+		Assert.assertEquals(values.getRecords().size(), 2);
+		Assert.assertEquals(values.getTotalRecords(), 21);
 	}
 	
 	/**
@@ -80,9 +85,9 @@ public class TestCases {
 	 */
 	@Test
 	public void searchOverLast20Records(){
-		FilterPageResult<String> values = SearchUtility.searchInputWithSiteAndKey(cacheSearcher, new StringOrderComparison(), "site", 37, 20, "RASHIDI", "100","999");
+		FilterPageResult<String> values = SearchUtility.searchInputWithSiteAndKey(cacheSearcher, new StringOrderComparison(), "site", 20, 20, "RASHIDI", "100","999");
 		Assert.assertEquals(values.getRecords().size(), 1);
-		Assert.assertEquals(values.getTotalRecords(), 38);
+		Assert.assertEquals(values.getTotalRecords(), 21);
 	}
 	
 	/**
@@ -92,7 +97,7 @@ public class TestCases {
 	public void searchLastRecord(){
 		FilterPageResult<String> values = SearchUtility.searchInputWithSiteAndKey(cacheSearcher, new StringOrderComparison(), "site", 38, 20, "RASHIDI", "100","999");
 		Assert.assertEquals(values.getRecords().size(), 0);
-		Assert.assertEquals(values.getTotalRecords(), 38);
+		Assert.assertEquals(values.getTotalRecords(), 21);
 	}
 	
 	/**
@@ -103,6 +108,57 @@ public class TestCases {
 		FilterPageResult<SimpleDataType> values = SearchUtility.searchInputWithSiteAndKey(cacheSearcherMultiObject, new SimpleDataOrderComparison(), "site", 0, 20, "RASHIDI", "100","999");
 		Assert.assertEquals(values.getRecords().size(), 1);
 		Assert.assertEquals(values.getTotalRecords(), 1);
+	}
+	
+	/**
+	 * Test regular expression is searching right keywords.
+	 */
+	@Test
+	public void testKeywordSearches(){
+		List<SearchRequest<String>> keywordsToSearch = new ArrayList<SearchRequest<String>>(6);
+		keywordsToSearch.add(new SearchRequest<String>("indonesia", "1"));
+		keywordsToSearch.add(new SearchRequest<String>("one malaysia", "2"));
+		keywordsToSearch.add(new SearchRequest<String>("malaysia one", "3"));
+		keywordsToSearch.add(new SearchRequest<String>("one", "4"));
+		keywordsToSearch.add(new SearchRequest<String>("malaysia is one community", "5"));
+		keywordsToSearch.add(new SearchRequest<String>("malaysia is a friends to indonesia", "6"));
+		keywordsToSearch.add(new SearchRequest<String>("one can see that from indonesia", "7"));
+		keywordsToSearch.add(new SearchRequest<String>("one can see that from indonesia.", "8"));
+		keywordsToSearch.add(new SearchRequest<String>("malaysia one.", "9"));
+		keywordsToSearch.add(new SearchRequest<String>("one, malaysia", "10"));
+		
+		SearchWorker<String> searchWorker = new SearchWorker<String>(keywordsToSearch, "one");
+		SearchResultList<String> results = searchWorker.call();
+		
+		ArrayList<String> listOfResults = new ArrayList<String>(10);
+		for(String result: results){
+			listOfResults.add(result);
+		}
+		Collections.sort(listOfResults);
+		Assert.assertEquals("10",listOfResults.get(0));
+		Assert.assertEquals("2",listOfResults.get(1));
+		Assert.assertEquals("3",listOfResults.get(2));
+		Assert.assertEquals("4",listOfResults.get(3));
+		Assert.assertEquals("5",listOfResults.get(4));
+		Assert.assertEquals("7",listOfResults.get(5));
+		Assert.assertEquals("8",listOfResults.get(6));
+		Assert.assertEquals("9",listOfResults.get(7));
+	}
+	
+	/**
+	 * Disallow all special characters
+	 */
+	@Test
+	public void disallowSpecialCharacters(){
+		List<SearchRequest<String>> keywordsToSearch = new ArrayList<SearchRequest<String>>(6);
+		keywordsToSearch.add(new SearchRequest<String>(".*all.* one", "1"));
+		keywordsToSearch.add(new SearchRequest<String>("\\one\\", "2"));
+		keywordsToSearch.add(new SearchRequest<String>(".*", "3"));
+		
+		SearchWorker<String> searchWorker = new SearchWorker<String>(keywordsToSearch, "one");
+		SearchResultList<String> results = searchWorker.call();
+		
+		Assert.assertEquals(1,results.size()); //because of first
 	}
 }
 

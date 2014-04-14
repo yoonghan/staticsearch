@@ -11,7 +11,7 @@ import search.init.SearchGuavaCache;
 import com.timwe.util.celcom.my.search.util.SearchUtility;
 
 public class TestConcurrentRuns {
-	private final String SEARCH_KEY_1 = "99"; //minimum 3 characters
+	private final String SEARCH_KEY_1 = "999"; //minimum 3 characters
 	private final double THINKTIME=1000;
 	private final int USER_COUNT=10;
 	//Loading into the memory.
@@ -108,7 +108,7 @@ public class TestConcurrentRuns {
 	}
 	
 	private void validateResult(List<String> searchResults, int userThreadId, String controller){
-		Assert.assertEquals(searchResults.size(), 11);
+		Assert.assertEquals(10, searchResults.size());
 	}
 	
 	private void endTimer(long startTime, int userThreadId, String controller) {

@@ -26,7 +26,11 @@ public class SearchGuavaCache extends AbstractSearchGuavaCache<String> {
 		for(int i=0; i<MAX_LOAD; i++){
 			String searchKey = null;
 			searchKey = null; 
-			searchKey = String.format("A very long senten3ce like etc. etc. etc. %s %s%s",i,(char)i,(char)i);
+			//break all text into only 3 characters.
+			String intVal = new String(""+i);
+			intVal = intVal.length() > 3? intVal.substring(0,3)+" "+intVal.substring(3): intVal;
+			
+			searchKey = String.format("A very long senten3ce like etc. etc. etc. %s %s %s",intVal,(char)i,(char)i);
 			String searchPath = null;
 			if(i % 9999 != 0){ //make some missing values
 				searchPath ="location"+i;

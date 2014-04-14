@@ -1,9 +1,12 @@
 package com.timwe.util.celcom.my.cache.data;
 
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.mindergy.cache.MemCacheImpl;
 import com.mindergy.exception.CacheException;
@@ -19,14 +22,12 @@ import com.timwe.util.celcom.my.search.data.SearchRequest;
  */
 public abstract class AbstractSearchMemCache<T>  implements MultiSearchCache<T> {
 	
-	private final int RESET_COUNTER=0;
-	private final int FIRST_LOAD_COUNTER=1;
-	private final int MAX_RETRIES = 20;
-	
 	/** The cache interface */
 	private final ICache cache = new MemCacheImpl(AbstractSearchMemCache.class.getSimpleName());
 	/** Count for releases */
-	private AtomicInteger atomicCounter = new AtomicInteger(0);
+	private final MyAtomicInteger timeToRetry = new MyAtomicInteger(new Date().getTime());
+	private final AtomicBoolean running = new AtomicBoolean(true); //consider as running for first run.
+	
 	
 	/**
 	 * Get the value of a key from the cache
@@ -38,18 +39,17 @@ public abstract class AbstractSearchMemCache<T>  implements MultiSearchCache<T> 
 		List<SearchRequest<T>> value = retrieveValue(site);
 
 		if(value == null){
-			int counter = atomicCounter.incrementAndGet();
-			if(counter == FIRST_LOAD_COUNTER ||  counter> MAX_RETRIES){
-				
+			long retryTime = new Date().getTime();
+			
+			//run if waited more than the time. else run if there is no background process running and a need to search value.
+			if(timeToRetry.setIfGreater(retryTime) || running.compareAndSet(false, true)){
 				try{
 					value = loadValues(site);
 					putOnCache(site, value);
 				}catch(Exception e){
 					e.printStackTrace();
 				}
-				
-				atomicCounter.set(RESET_COUNTER);
-				
+				running.set(false);
 			}else{
 				sleep();
 				retrieveValue(site);
@@ -98,13 +98,20 @@ public abstract class AbstractSearchMemCache<T>  implements MultiSearchCache<T> 
 	}
 	
 	/**
-	 * Calculate the expiry date
+	 * Calculate the expiry date. Which is on midnight.
 	 * @param dt
 	 * @return
 	 */
 	private Date getExpiryDate(Date dt) {
-		long spanTime = TimeUnit.MILLISECONDS.convert(SearchSettingsImpl.SPAN_TIME,SearchSettingsImpl.SPAN_TIME_UNIT);
-		return new Date(dt.getTime()+ spanTime);
+		Calendar date = new GregorianCalendar();
+		// reset hour, minutes, seconds and millis
+		date.set(Calendar.HOUR_OF_DAY, 0);
+		date.set(Calendar.MINUTE, 0);
+		date.set(Calendar.SECOND, 0);
+		date.set(Calendar.MILLISECOND, 0);
+		
+		date.add(Calendar.DAY_OF_MONTH, 1);
+		return new Date(date.getTimeInMillis());
 	}
 
 	/*
@@ -115,4 +122,24 @@ public abstract class AbstractSearchMemCache<T>  implements MultiSearchCache<T> 
 	public List<SearchRequest<T>> getByValuesBySite(String site) {
 		return getFromCache(site);
 	};
+}
+
+class MyAtomicInteger extends AtomicLong {
+	
+	private static final long SPAN_TIME = TimeUnit.MILLISECONDS.convert(SearchSettingsImpl.RETRY_INTERVAL_TIME,SearchSettingsImpl.RETRY_INTERVAL_UNIT);
+	
+	public MyAtomicInteger(long time) {
+		super(time);
+	}
+
+	public boolean setIfGreater(long update) {         
+		while (true) {             
+			long cur = get();
+			
+			if (update > cur) {
+				return compareAndSet(cur, update+SPAN_TIME);	//for sure matches.
+			}else
+				return false;
+		}
+	}
 }
