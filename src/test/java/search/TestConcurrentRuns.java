@@ -28,7 +28,7 @@ public class TestConcurrentRuns {
 	/**
 	 * Java program that is to be run manually to determine the performance and test the program on how it should run.
 	 */
-	//@Test
+	@Test
 	public void startPerformanceTest(){
 		System.out.println("Starting ...");
 		System.out.println("Pause 5 seconds for JVM loading ...");

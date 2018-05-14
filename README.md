@@ -14,3 +14,16 @@ In the real environment, the cached is stored into Memcache. Which is more effic
 using the command "service memcached restart" is more convinient.
 
 This program is a standalone program and is easily pluggable as a jar.
+
+Execute with
+============
+../apache-maven-3.5.3/bin/mvn test
+
+Change
+======
+All thread settings resides in:
+src/main/java/com/timwe/util/celcom/my/cache/impl/SearchSettingsImpl.java
+
+Test Case
+====
+The test case are 10000 records.
